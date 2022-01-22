@@ -1,3 +1,17 @@
+login.json
+
+# Pycharm
+.idea
+
+# My windows task manager xml
+Edge Rewards.xml
+
+#Installed Drivers
+chromedriver.exe
+msedgedriver.exe
+
+# BELOW HERE IS PYTHON TEMPLATE --------------------------------------
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -1,0 +1,1 @@
+I Made a task scheduler task pointing to SearchBingNews.py... don't move it
