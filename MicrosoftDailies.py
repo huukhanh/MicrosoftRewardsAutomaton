@@ -10,8 +10,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 
-from SeleniumHelper import wait_until_clickable, click_by_class, click_by_id, wait_until_visible, send_key_by_name, \
-    find_by_id, find_by_xpath, find_by_class, find_by_css, main_window, latest_window, screenshot
+from SeleniumHelper import wait_until_clickable, wait_until_visible, main_window, latest_window, click_element
 
 """
 This file handles logic for iterating through daily offers in microsoft rewards dashboard.
@@ -66,21 +65,21 @@ def iter_dailies(browser):
             sign_in_prompt(browser)
             # check for poll by ID
 
-            if find_by_id(browser, 'btoption0'):
+            if browser.find_elements(By.ID, 'btoption0'):
                 logging.info('Poll identified.')
                 daily_poll(browser)
             # check for quiz by checking for ID
-            elif find_by_id(browser, 'rqStartQuiz'):
-                click_by_id(browser, 'rqStartQuiz')
+            elif browser.find_elements(By.ID, 'rqStartQuiz'):
+                click_element(browser, By.ID, 'rqStartQuiz')
                 # test for drag or drop or regular quiz
-                if find_by_id(browser, 'rqAnswerOptionNum0'):
+                if browser.find_elements(By.ID, 'rqAnswerOptionNum0'):
                     logging.info('Drag and Drop Quiz identified.')
                     drag_and_drop_quiz(browser)
                 # look for lightning quiz indicator
-                elif find_by_id(browser, 'rqAnswerOption0'):
+                elif browser.find_elements(By.ID, 'rqAnswerOption0'):
                     logging.info('Lightning Quiz identified.')
                     lightning_quiz(browser)
-            elif find_by_class(browser, 'wk_Circle'):
+            elif browser.find_elements(By.CLASS_NAME, 'wk_Circle'):
                 logging.info('Click Quiz identified.')
                 click_quiz(browser)
             # else do scroll for exploring pages
@@ -122,7 +121,7 @@ def daily_poll(browser):
     time.sleep(3)
     # click poll option
     choices = ['btoption0', 'btoption1']  # new poll format
-    click_by_id(browser, random.choice(choices))
+    click_element(browser, By.ID, random.choice(choices))
     time.sleep(3)
     # close window, switch to main
     main_window(browser)
@@ -131,21 +130,21 @@ def daily_poll(browser):
 def lightning_quiz(browser):
     for question_round in range(10):
         logging.debug(msg=f'Round# {question_round}')
-        if find_by_id(browser, 'rqAnswerOption0'):
+        if browser.find_elements(By.ID, 'rqAnswerOption0'):
             first_page = browser.find_element(By.ID, 'rqAnswerOption0').get_attribute("data-serpquery")
             browser.get(f"https://www.bing.com{first_page}")
             time.sleep(3)
             for i in range(10):
-                if find_by_id(browser, f'rqAnswerOption{i}'):
+                if browser.find_elements(By.ID, f'rqAnswerOption{i}'):
                     browser.execute_script(f"document.querySelector('#rqAnswerOption{i}').click();")
                     logging.debug(msg=f'Clicked {i}')
                     time.sleep(2)
         # let new page load
         time.sleep(3)
-        if find_by_id(browser, 'quizCompleteContainer'):
+        if browser.find_elements(By.ID, 'quizCompleteContainer'):
             break
     # close the quiz completion splash
-    quiz_complete = find_by_css(browser, '.cico.btCloseBack')
+    quiz_complete = browser.find_elements(By.CSS_SELECTOR, '.cico.btCloseBack')
     if quiz_complete:
         quiz_complete[0].click()
     time.sleep(3)
@@ -157,21 +156,21 @@ def click_quiz(browser):
     Start the quiz, iterates 10 times
     """
     for i in range(10):
-        if find_by_css(browser, '.cico.btCloseBack'):
-            find_by_css(browser, '.cico.btCloseBack')[0].click()[0].click()
+        if browser.find_elements(By.CSS_SELECTOR, '.cico.btCloseBack'):
+            browser.find_elements(By.CSS_SELECTOR, '.cico.btCloseBack')[0].click()[0].click()
             logging.debug(msg='Quiz popped up during a click quiz...')
-        choices = find_by_class(browser, 'wk_Circle')
+        choices = browser.find_elements(By.CLASS_NAME, 'wk_Circle')
         # click answer
         if choices:
             random.choice(choices).click()
             time.sleep(3)
         # click the 'next question' button
         wait_until_clickable(browser, By.CLASS_NAME, 'wk_buttons', 10)
-        click_by_class(browser, 'wk_buttons')
+        click_element(browser, By.CLASS_NAME, 'wk_buttons')
         time.sleep(3)
 
         # if the green check mark reward icon is visible, end loop
-        if find_by_css(browser, 'span[class="rw_icon"]'):
+        if browser.find_elements(By.CSS_SELECTOR, 'span[class="rw_icon"]'):
             break
 
     main_window(browser)
@@ -185,9 +184,9 @@ def drag_and_drop_quiz(browser):
     for i in range(100):
         try:
             # find possible solution buttons
-            drag_option = find_by_class(browser, 'rqOption')
+            drag_option = browser.find_elements(By.CLASS_NAME, 'rqOption')
             # find any answers marked correct with correctAnswer tag
-            right_answers = find_by_class(browser, 'correctAnswer')
+            right_answers = browser.find_elements(By.CLASS_NAME, 'correctAnswer')
             # remove right answers from possible choices
             if right_answers:
                 drag_option = [x for x in drag_option if x not in right_answers]
@@ -203,11 +202,11 @@ def drag_and_drop_quiz(browser):
             continue
         finally:
             time.sleep(3)
-            if find_by_id(browser, 'quizCompleteContainer'):
+            if browser.find_elements(By.ID, 'quizCompleteContainer'):
                 break
     # close the quiz completion splash
     time.sleep(3)
-    quiz_complete = find_by_css(browser, '.cico.btCloseBack')
+    quiz_complete = browser.find_elements(By.CSS_SELECTOR, '.cico.btCloseBack')
     if quiz_complete:
         quiz_complete[0].click()
     time.sleep(3)
@@ -216,7 +215,7 @@ def drag_and_drop_quiz(browser):
 
 def sign_in_prompt(browser):
     time.sleep(3)
-    sign_in_prompt_msg = find_by_class(browser, 'simpleSignIn')
+    sign_in_prompt_msg = browser.find_elements(By.CLASS_NAME, 'simpleSignIn')
     if sign_in_prompt_msg:
         logging.info(msg='Detected sign-in prompt')
         browser.find_element(By.LINK_TEXT, 'Sign in').click()

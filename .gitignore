@@ -1,14 +1,16 @@
 login.json
 
 # Pycharm
-.idea
+.idea/
 
 # My windows task manager xml
 Edge Rewards.xml
 
 #Installed Drivers
-chromedriver.exe
-msedgedriver.exe
+drivers/
+
+# Anything in logs folder
+logs/*
 
 # BELOW HERE IS PYTHON TEMPLATE --------------------------------------
 

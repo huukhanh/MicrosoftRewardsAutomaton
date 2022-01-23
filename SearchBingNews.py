@@ -13,9 +13,11 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.edge.options import Options as EdgeOptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as ec
 
 from MicrosoftDailies import iter_dailies
-from SeleniumHelper import wait_until_clickable, click_by_id, wait_until_visible, send_key_by_name
+from SeleniumHelper import wait_until_clickable, wait_until_visible, \
+    click_element, send_key
 
 """
 Automated Binq Query searching and Quiz Completion to maximize daily Microsoft Bing rewards points
@@ -116,15 +118,15 @@ def spoof_broswer(driver_type, args):
         # Open up Edge on desktop (no spoofing user agent required)
 
         # THis method I couldn't figure out how to get headless options (and also had issue with Edge instances in startup)
-        # edge_path = os.path.join(dir, 'msedgedriver.exe')
+        # edge_path = os.path.join(dir, 'drivers', 'msedgedriver.exe')
         # driver = webdriver.Edge(options=driveroptions, executable_path=edge_path)
 
         # see https://docs.microsoft.com/en-us/microsoft-edge/webdriver-chromium?tabs=python
 
         options.use_chromium = True
-        options.binary_location = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
-
-        driver = webdriver.Edge(options=options)
+        #options.binary_location = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+        edge_path = os.path.join(dir, 'drivers', 'msedgedriver.exe')
+        driver = webdriver.Edge(options=options, service=Service(edge_path))
     elif driver_type == Device.Mobile.value:
         # Spoof my user agent as my phone (Just google my user agent via my mobile device for the exact agent string)
         # The user agent needs to be updated every time my phone updates chrome...
@@ -138,7 +140,7 @@ def spoof_broswer(driver_type, args):
             # I could stop auyo-updating chrome on my phone (nah)
             # I could write a follow up script to verify I've gotten my mobile points for the day (delay by x minutes or hours)
                 # I'd then need to notice a warning that occurs (and manuallu update and re-run) or just re-submit this script with a different parsed agent
-        chrome_path = os.path.join(dir, 'chromedriver.exe')
+        chrome_path = os.path.join(dir, 'drivers', 'chromedriver.exe')
 
         options.add_argument('--user-agent="Mozilla/5.0 (Linux; Android 10; SM-G960U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.87 Mobile Safari/537.36"')
         driver = webdriver.Chrome(options=options, service=Service(chrome_path))
@@ -170,15 +172,15 @@ def sign_into_microsoft(driver, credentials):
     logged_in = True
     if wait_until_visible(driver, By.NAME, 'loginfmt', 5):  # Check if we are not already logged in
         wait_until_clickable(driver, By.NAME, 'loginfmt', 5)
-        send_key_by_name(driver, 'loginfmt', credentials["email"])  # add your login email id
+        send_key(driver, By.NAME, 'loginfmt', credentials["email"])  # add your login email id
         wait_for(0.5)
-        send_key_by_name(driver, 'loginfmt', Keys.RETURN)
+        send_key(driver, By.NAME, 'loginfmt', Keys.RETURN)
         wait_for(5)
 
         wait_until_clickable(driver, By.NAME, 'passwd', 5)
-        send_key_by_name(driver, 'passwd', credentials["password"])  # authenticate
+        send_key(driver, By.NAME, 'passwd', credentials["password"])  # authenticate
         time.sleep(0.5)
-        send_key_by_name(driver, 'passwd', Keys.RETURN)
+        send_key(driver, By.NAME, 'passwd', Keys.RETURN)
         time.sleep(0.5)
     else:
         logging.info("Should be already logged in")
@@ -199,7 +201,7 @@ def ensure_pc_mode_logged_in(browser):
     wait_for(0.1)
     # click on ribbon to ensure logged in
     wait_until_clickable(browser, By.ID, 'id_l', 10)
-    click_by_id(browser, 'id_l')
+    click_element(browser, By.ID, 'id_l')
     wait_for(0.1)
 
     # Ensure that the name id exists and is not hidden (this indicates you are signed in)

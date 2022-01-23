@@ -11,135 +11,99 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 
 """
-Provides helpers for selenium... I didn't write this... could use some improvements.
-Maybe uncomment the screenshot ability later to help debug
-https://github.com/dajoen/Microsoft-Rewards-Bot?ref=https://githubhelp.com
+Provides helpers for selenium with error handling
 """
 
 
-def wait_until_clickable(browser, by_, selector, time_to_wait=10):
+def wait_until_(browser, condition_func, by_, selector, time_to_wait=10, poll_frequency=0.5, ignore_timeout=True):
     """
-    Waits time_to_wait seconds for element to be clickable
+    Waits time_to_wait seconds for element to meet specified condition
+
+    :param browser:  web driver
+    :param condition_func:  selenium.webdriver.support.expected_conditions class implementation to wait for
     :param by_:  BY module args to pick a selector
     :param selector: string of xpath, css_selector or other
     :param time_to_wait: Int time to wait
+    :param ignore_timeout: if True, ignores TimeoutException (doesn't require condition to be met)
     :return: None
     """
     try:
-        WebDriverWait(browser, time_to_wait).until(ec.element_to_be_clickable((by_, selector)))
+        return WebDriverWait(browser, time_to_wait, poll_frequency).until(condition_func((by_, selector)))
     except TimeoutException:
-        logging.exception(msg=f'{selector} element Not clickable - Timeout Exception', exc_info=False)
-        screenshot(browser, selector)
+        if not ignore_timeout:
+            logging.exception(f'{selector} element conditon ({condition_func}) not met. Timeout Exception')
+            screenshot(browser, selector)
+            raise
     except UnexpectedAlertPresentException:
-        # FIXME
         browser.switch_to.alert.dismiss()
-        # logging.exception(msg=f'{selector} element Not Visible - Unexpected Alert Exception', exc_info=False)
-        # screenshot(browser, selector)
-        # browser.refresh()
-    except WebDriverException:
-        logging.exception(msg=f'Webdriver Error for {selector} object')
+        logging.exception('Unexpected Alert Exception')
         screenshot(browser, selector)
-
-
-def click_by_class(browser, selector):
-    """
-    Clicks on node object selected by class name
-    :param selector: class attribute
-    :return: None
-    """
-    try:
-        browser.find_element(By.CLASS_NAME, selector).click()
-    except (ElementNotVisibleException, ElementClickInterceptedException, ElementNotInteractableException):
-        logging.exception(msg=f'Send key by class to {selector} element not visible or clickable.')
-    except WebDriverException:
-        logging.exception(msg=f'Webdriver Error for send key by class to {selector} object')
-
-
-def click_by_id(browser, obj_id):
-    """
-    Clicks on object located by ID
-    :param obj_id: id tag of html object
-    :return: None
-    """
-    try:
-        browser.find_element(By.ID, obj_id).click()
-    except (ElementNotVisibleException, ElementClickInterceptedException, ElementNotInteractableException):
-        logging.exception(msg=f'Click by ID to {obj_id} element not visible or clickable.')
-    except WebDriverException:
-        logging.exception(msg=f'Webdriver Error for click by ID to {obj_id} object')
-
-
-def wait_until_visible(browser, by_, selector, time_to_wait=10):
-    """
-    Searches for selector and if found, end the loop
-    Else, keep repeating every 2 seconds until time elapsed, then refresh page
-    :param by_: string which tag to search by
-    :param selector: string selector
-    :param time_to_wait: int time to wait
-    :return: Boolean if selector is found
-    """
-    start_time = time.time()
-    while (time.time() - start_time) < time_to_wait:
-        if browser.find_elements(by=by_, value=selector):
-            return True
-        browser.refresh()  # for other checks besides points url
-        time.sleep(2)
-    return False
-
-
-def send_key_by_name(browser, name, key):
-    """
-    Sends key to target found by name
-    :param name: Name attribute of html object
-    :param key: Key to be sent to that object
-    :return: None
-    """
-    try:
-        browser.find_element(By.NAME, name).send_keys(key)
-    except (ElementNotVisibleException, ElementClickInterceptedException, ElementNotInteractableException):
-        logging.exception(msg=f'Send key by name to {name} element not visible or clickable.')
-    except NoSuchElementException:
-        logging.exception(msg=f'Send key to {name} element, no such element.')
-        screenshot(browser, name)
         browser.refresh()
+        raise
     except WebDriverException:
-        logging.exception(msg=f'Webdriver Error for send key to {name} object')
+        logging.exception(f'Webdriver Error for {selector} object')
+        screenshot(browser, selector)
+        raise
 
 
-def find_by_id(browser, obj_id):
+def wait_until_clickable(browser, by_, selector, time_to_wait=10, ignore_timeout=False, **kwargs):
     """
-    Searches for elements matching ID
-    :param obj_id:
-    :return: List of all nodes matching provided ID
+    Wrapper for wait_until_ for clickable condition. By default, allows timeout -> requiring condition to be met.
     """
-    return browser.find_elements_by_id(obj_id)
+    func = ec.element_to_be_clickable
+    return wait_until_(browser, func, by_, selector, time_to_wait=time_to_wait, ignore_timeout=ignore_timeout, **kwargs)
 
 
-def find_by_xpath(browser, selector):
+def wait_until_visible(browser, by_, selector, time_to_wait=10, ignore_timeout=True, **kwargs):
     """
-    Finds elements by xpath
-    :param selector: xpath string
-    :return: returns a list of all matching selenium objects
+    Wrapper for wait_until_ for visible condition. By default, ignores timeout -> not requiring condition to be met.
     """
-    return browser.find_elements_by_xpath(selector)
+    func = ec.visibility_of_element_located
+    return wait_until_(browser, func, by_, selector, time_to_wait=time_to_wait, ignore_timeout=ignore_timeout, **kwargs)
 
 
-def find_by_class(browser, selector):
-    """
-    Finds elements by class name
-    :param selector: Class selector of html obj
-    :return: returns a list of all matching selenium objects
-    """
-    return browser.find_elements_by_class_name(selector)
+def click_element(browser, by_, selector, ignore_no_such_element=False) -> bool:
+    try:
+        browser.find_element(by_, selector).click()
+        return True
+    except (ElementNotVisibleException, ElementClickInterceptedException, ElementNotInteractableException):
+        logging.exception(f'Found {selector} element by {by_}, but it is not visible or interactable. Attempting JS Click', exc_info=False)
+        return browser.js_click(browser.find_element(by_, selector))
+    except NoSuchElementException:
+        if not ignore_no_such_element:
+            logging.exception(f'Element not found when searched for {selector} by {by_}.', exc_info=False, )
+            browser.screenshot(selector)
+            browser.refresh()
+    except WebDriverException:
+        logging.exception(f'Webdriver Error in clicking. Searched by {by_} for {selector}.')
+    finally:
+        return False
 
 
-def find_by_css(browser, selector):
-    """
-    Finds nodes by css selector
-    :param selector: CSS selector of html node obj
-    :return: returns a list of all matching selenium objects
-    """
-    return browser.find_elements_by_css_selector(selector)
+def js_click(browser, element):
+    """Click any given element"""
+    try:
+        browser.execute_script("arguments[0].click();", element)
+        return True
+    except Exception:
+        logging.exception(f'Exception when JS click')
+
+
+def send_key(browser, by_, selector, key, ignore_no_such_element=False) -> bool:
+    try:
+        browser.find_element(by_, selector).send_keys(key)
+        return True
+    except (ElementNotVisibleException, ElementClickInterceptedException, ElementNotInteractableException):
+        logging.exception(msg=f'Found {selector} element by {by_}, but it is not visible or interactable.', exc_info=False)
+    except NoSuchElementException:
+        if not ignore_no_such_element:
+            logging.exception(f'Element not found when searched for {selector} by {by_}.', exc_info=False, )
+            browser.screenshot(selector)
+            browser.refresh()
+    except WebDriverException:
+        logging.exception(msg=f'Webdriver Error in sending key. Searched by {by_} for {selector}')
+    finally:
+        return False
 
 
 def main_window(browser):
