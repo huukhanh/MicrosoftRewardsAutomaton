@@ -28,7 +28,7 @@ def iter_dailies(browser):
     time.sleep(1)
     logging.info(f"loading: {DASHBOARD_URL}")
     browser.get(DASHBOARD_URL)
-    time.sleep(4)
+    time.sleep(2)
     sign_in_link = browser.find_element(By.ID, 'raf-signin-link-id')
     if sign_in_link:
         logging.info(msg="clicking sign_in link to go to rewards")
@@ -122,7 +122,7 @@ def daily_poll(browser):
     # click poll option
     choices = ['btoption0', 'btoption1']  # new poll format
     click_element(browser, By.ID, random.choice(choices))
-    time.sleep(3)
+    time.sleep(2)
     # close window, switch to main
     main_window(browser)
 
@@ -140,14 +140,14 @@ def lightning_quiz(browser):
                     logging.debug(msg=f'Clicked {i}')
                     time.sleep(2)
         # let new page load
-        time.sleep(3)
+        time.sleep(2)
         if browser.find_elements(By.ID, 'quizCompleteContainer'):
             break
     # close the quiz completion splash
     quiz_complete = browser.find_elements(By.CSS_SELECTOR, '.cico.btCloseBack')
     if quiz_complete:
         quiz_complete[0].click()
-    time.sleep(3)
+    time.sleep(2)
     main_window(browser)
 
 
@@ -167,7 +167,7 @@ def click_quiz(browser):
         # click the 'next question' button
         wait_until_clickable(browser, By.CLASS_NAME, 'wk_buttons', 10)
         click_element(browser, By.CLASS_NAME, 'wk_buttons')
-        time.sleep(3)
+        time.sleep(2)
 
         # if the green check mark reward icon is visible, end loop
         if browser.find_elements(By.CSS_SELECTOR, 'span[class="rw_icon"]'):
@@ -181,7 +181,7 @@ def drag_and_drop_quiz(browser):
     Checks for drag quiz answers and exits when none are found.
     :return: None
     """
-    for i in range(100):
+    for _ in range(100):
         try:
             # find possible solution buttons
             drag_option = browser.find_elements(By.CLASS_NAME, 'rqOption')
@@ -190,6 +190,7 @@ def drag_and_drop_quiz(browser):
             # remove right answers from possible choices
             if right_answers:
                 drag_option = [x for x in drag_option if x not in right_answers]
+
             if drag_option:
                 # select first possible choice and remove from options
                 choice_a = random.choice(drag_option)
@@ -204,6 +205,7 @@ def drag_and_drop_quiz(browser):
             time.sleep(3)
             if browser.find_elements(By.ID, 'quizCompleteContainer'):
                 break
+
     # close the quiz completion splash
     time.sleep(3)
     quiz_complete = browser.find_elements(By.CSS_SELECTOR, '.cico.btCloseBack')
