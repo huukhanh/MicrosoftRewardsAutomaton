@@ -5,8 +5,9 @@ import random
 import time
 import os, sys
 import argparse
-import timer
+import re
 import traceback
+from typing import List
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -27,33 +28,36 @@ Latest? is https://github.com/tmxkn1/Microsoft-Rewards-Bot/tree/master
 For running in `Task Scheduler` without a window popping up and stealing focus See: https://www.howtogeek.com/tips/how-to-run-a-scheduled-task-without-a-command-window-appearing/
 """
 
-
-#TODO: mobile cant get points: better to get rewards from modal of `Points breakdown` on rewards dashboard. Then could also get the total available points to spend
 #TODO: headless mobile is super damn finicky... Add a retry if we don't have the points (get_points should return how many we need)
 
-#TODO: clean everything up, especially with selenium v4 and the browser spoofing
 #TODO: Add README and requirements.txt and way to easily install
-#TODO: add context for driver to clean up the destroy??
-    
+
+#TODO: add with-context for driver to auto-cleanup??
+
+#TODO: how do I add a release in github??
+
+# Should send an email if it fails to get all of the points???
+
+# Screenshot mode should only be enabled if debug is on... otherwise would need to clean out the folder periodically.
+# Would require re-write
+
 BING_SEARCH_URL = "https://www.bing.com/search"
 DASHBOARD_URL = "https://rewards.microsoft.com/"
 POINT_TOTAL_URL = "http://www.bing.com/rewardsapp/bepflyoutpage?style=chromeextension"
 
 verbose_log_format = "%(levelname)s %(asctime)s - %(message)s"
 no_log_format = "%(message)s"
-logging.basicConfig(# filename="logfile.log",
-                    stream=sys.stdout,
-                    filemode="w",
-                    format=no_log_format,
-                    level=logging.INFO)
-
+log_path = os.path.join('logs', 'ms_rewards.log')
+logging.basicConfig(format=no_log_format,
+                    level=logging.INFO,
+                    handlers=[
+                        logging.FileHandler(log_path, mode="w"),
+                        logging.StreamHandler()
+                    ])
 
 class Device(Enum):
     PC = 1
     Mobile = 2
-
-
-CURRENT_DEVICE = Device.PC
 
 
 def setup_opts(parser=None):
@@ -79,7 +83,7 @@ def setup_opts(parser=None):
         action='store_true',
         dest='headless',
         default=False,
-        help='Activates headless mode, default is off.')
+        help='Activates "silent" headless mode (no browser will pop up, runs in background), default is off.')
     parser.add_argument(
         '--quiz',
         '-q',
@@ -87,6 +91,12 @@ def setup_opts(parser=None):
         dest='quiz_mode',
         default=False,
         help='Activates pc quiz search if pc driver is selected, default is off.')
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        dest='debug',
+        default=False,
+        help='Permits screenshots saved to log folder on exception if True, default is off.')
         
     return parser
 
@@ -97,13 +107,13 @@ def main(args):
     for i in sorted(args.drivers, reverse=True):  # Do mobile first since it can't get_point_total
         try:
             # Get our driver (mobile or desktop edge)
-            CURRENT_DEVICE = Device(i)
-            logging.info(f"Opening driver type: {CURRENT_DEVICE}")
-            driver = Driver.CHROME if CURRENT_DEVICE == Device.Mobile else Driver.EDGE
-            browser = spoof_browser(driver, args.headless)
+            device = Device(i)
+            logging.info(f"Opening driver type: {device}")
+            driver = Driver.CHROME if device == Device.Mobile else Driver.EDGE
+            browser = spoof_browser(driver, args.headless, allow_screenshots=args.debug)
 
             # Login to Microsoft rewards
-            if not sign_into_microsoft(browser, get_login_info()):
+            if not sign_into_microsoft(browser, device, get_login_info()):
                 logging.error("Please Sign in to get the rewards. Some error occurred")
                 if browser:
                     browser.close()
@@ -114,17 +124,16 @@ def main(args):
                 words_list = get_search_terms(args.numWords)
                 query_bing(browser, words_list)
 
-            if not completed_quizzes and args.quiz_mode and CURRENT_DEVICE == Device.PC:
+            if not completed_quizzes and args.quiz_mode and device == Device.PC:
                 try:
                     logging.info(f'Attempting daily quizzes.')
                     iter_dailies(browser)
                     completed_quizzes = True
                 except Exception as e:
-                    logging.error(f'Failed to complete quizzes: {e}')
+                    logging.error(f'Failed to complete quizzes.')
                     logging.error(traceback.format_exc())
 
-            if CURRENT_DEVICE == Device.PC:  # Doesn't work with mobile currently
-                get_point_total(browser, log=True)
+            get_point_total(browser, device, log=True)
 
         except KeyboardInterrupt:
             logging.error('Stopping Script...')
@@ -136,7 +145,7 @@ def main(args):
                 time.sleep(1)
 
 
-def sign_into_microsoft(browser, credentials):
+def sign_into_microsoft(browser, device: Device, credentials: dict):
     browser.get("https://login.live.com")
     time.sleep(0.5)
 
@@ -156,7 +165,7 @@ def sign_into_microsoft(browser, credentials):
     else:
         logging.info("Should be already logged in")
 
-    if CURRENT_DEVICE == Device.PC:
+    if device == Device.PC:
         logged_in = ensure_pc_mode_logged_in(browser)
 
     return logged_in
@@ -186,7 +195,7 @@ def ensure_pc_mode_logged_in(browser):
     return elem.get_attribute("aria-hidden") == "false"
 
 
-def get_search_terms(num):
+def get_search_terms(num: int):
     dir = os.path.dirname(__file__)
     wordsPath = os.path.join(dir, "wordsList.txt")
     with open(wordsPath) as json_file:
@@ -196,12 +205,12 @@ def get_search_terms(num):
     return words_list
 
 
-def query_bing(browser, words_list):
+def query_bing(browser, words: List[str]):
     url_base = f"{BING_SEARCH_URL}?q="
     time.sleep(5)
-    for num, word in enumerate(words_list):
+    for ind, word in enumerate(words):
         search_url = url_base + word
-        logging.info(f"Search #{str(num + 1)}. URL: {search_url}")
+        logging.info(f"Search #{str(ind + 1)}. URL: {search_url}")
         try:
             browser.get(search_url)
             time.sleep(0.1)
@@ -212,49 +221,64 @@ def query_bing(browser, words_list):
         time.sleep(random.uniform(1, 3))  # Try Not to get caught
 
 
-def get_point_total(browser, pc=False, mobile=False, log=False):
+def get_point_total(browser, device: Device, log: bool = False):
     """
     Checks for points for pc/edge and mobile, logs if flag is set
     :return: Boolean for either pc/edge or mobile points met
     """
-    logging.info(msg="Querying for point totals.")
-    browser.get(POINT_TOTAL_URL)
-
-    if not wait_until_visible(browser, By.CLASS_NAME, 'earn', 10):  # if object not found, return False
-        logging.info(msg=f"Exiting get_point_total: could not find any elements with class 'earn'")
-        return False
-
     try:
-        # NOTE: CSS doesn't do regular expressions at all.
-        # $= is a tail-string match. Similarly *= is a partial-substring match, and ^= is a head-string match.
-        current_pc_points, max_pc_points = map(
-            int, browser.find_element(By.CSS_SELECTOR, "div[aria-label*=PC]").text.split('/'))
-        current_mobile_points, max_mobile_points = map(
-            int, browser.find_element(By.CSS_SELECTOR, "div[aria-label*=Mobile]").text.split('/'))
-    except ValueError as e:
-        logging.info(msg=f'failed grabbing the points: ')
-        logging.info(msg=e)
+        logging.info(msg="Querying for point totals:")
+        browser.get(DASHBOARD_URL)
+        time.sleep(1)
+
+        if click_element(browser, By.XPATH, '//a[contains(@class, "signup-btn welcome")]', ignore_no_such_element=True):
+            logging.debug('Welcome page detected.')
+            time.sleep(2)
+
+        # Some magical script with user rewards account info
+        js = browser.find_elements(By.XPATH, '//script[text()[contains(., "userStatus")]]')
+        matches = re.search(r'(?=\{"userStatus":).*(=?\}\};)', js[0].get_attribute('text'))
+
+        # Query the json data for various rewards info
+        json_statuses = json.loads(matches[0][:-1])
+        status = json_statuses['userStatus']
+        counters = status['counters']
+
+        pc_search = counters['pcSearch'][0]
+        (pc_pts, pc_max) = (int(pc_search['pointProgress']), int(pc_search['pointProgressMax']))
+        edge_bonus = counters['pcSearch'][1]
+        (edge_bonus_pts, edge_bonus_max) = (int(edge_bonus['pointProgress']), int(edge_bonus['pointProgressMax']))
+
+        mobile_search = counters['mobileSearch'][0]
+        (mobile_pts, mobile_max) = (int(mobile_search['pointProgress']), int(mobile_search['pointProgressMax']))
+
+        daily_points = int(counters["dailyPoint"][0]["pointProgress"])
+        (current_points, lifetime_points) = (int(status['availablePoints']), int(status["lifetimePoints"]))
+
+        num_incomplete_quizzes = len([p for p in json_statuses.get("morePromotions", []) if not p["complete"]])
+
+        if log:
+            logging.info(f'\n')
+            logging.info(f'----------------------------------------------------')
+            logging.info(f'PC points = {pc_pts}/{pc_max}')
+            logging.info(f'Mobile points = {mobile_pts}/{mobile_max}')
+            logging.info(f'Edge Bonus points = {edge_bonus_pts}/{edge_bonus_max}')
+            logging.info(f'Points earned today: {daily_points}')
+            logging.info(f'Total Points Available/Earned = {current_points}/{lifetime_points}')
+            logging.info(f"Number of incomplete quizzes: {num_incomplete_quizzes}")
+            logging.info(f'----------------------------------------------------')
+            logging.info(f'\n')
+
+        max_points_achieved = pc_pts == pc_max if device == Device.PC else mobile_pts == mobile_max
+
+        return max_points_achieved
+    except Exception as e:
+        logging.error(f'Failed grabbing the points: \n{traceback.format_exc()}')
         return False
-
-    # if log flag is provided, log the point totals
-    if log:
-        logging.info(msg=f'PC points = {current_pc_points}/{max_pc_points}')
-        logging.info(msg=f'Mobile points = {current_mobile_points}/{max_mobile_points}')
-
-    # if pc flag, check if pc and edge points met
-    if pc:
-        if current_pc_points < max_pc_points:
-            return False
-        return True
-    # if mobile flag, check if mobile points met
-    if mobile:
-        if current_mobile_points < max_mobile_points:
-            return False
-        return True
 
 
 if __name__ == "__main__":
-    start = timer()
+    start = time.time()
 
     parser = setup_opts()
     args = parser.parse_args()
@@ -262,5 +286,7 @@ if __name__ == "__main__":
 
     main(args)
 
-    logging.info(f"We have reached the exit of the script after {timer() - start}s")
+    elapsed = time.time() - start
+    elapsed_formatted = time.strftime("%H:%M:%S", time.gmtime(elapsed))
+    logging.info(f"We have reached the exit of the script after {elapsed_formatted} h:m:s")
     sys.exit(0)

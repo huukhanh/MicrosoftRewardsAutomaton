@@ -22,7 +22,7 @@ class Driver(Enum):
     CHROME = "chromedriver"
 
 
-def spoof_browser(driver: Driver, headless: bool, drivers_path: str = DRIVERS_PATH) -> WebDriver:
+def spoof_browser(driver: Driver, headless: bool, drivers_path: str = DRIVERS_PATH, allow_screenshots: bool = False) -> WebDriver:
     """
     Returns appropriate WebDriver...
     CHROME device is spoofed with specified user agent for mobile
@@ -55,6 +55,11 @@ def spoof_browser(driver: Driver, headless: bool, drivers_path: str = DRIVERS_PA
         browser = webdriver.Chrome(options=options, service=Service(driver_path))
 
     browser.set_page_load_timeout(20)
+
+    if not allow_screenshots:
+        def do_nothing(*args, **kwargs):
+            pass
+        browser.save_screenshot = do_nothing
 
     return browser
 

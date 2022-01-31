@@ -29,10 +29,10 @@ def iter_dailies(browser):
     logging.info(f"loading: {DASHBOARD_URL}")
     browser.get(DASHBOARD_URL)
     time.sleep(2)
-    sign_in_link = browser.find_element(By.ID, 'raf-signin-link-id')
+    sign_in_link = browser.find_elements(By.ID, 'raf-signin-link-id')
     if sign_in_link:
         logging.info(msg="clicking sign_in link to go to rewards")
-        sign_in_link.click()
+        sign_in_link[0].click()
         time.sleep(2)
 
     open_offers = browser.find_elements_by_xpath('//span[contains(@class, "mee-icon-AddMedium")]')
@@ -64,7 +64,6 @@ def iter_dailies(browser):
             # check for sign-in prompt
             sign_in_prompt(browser)
             # check for poll by ID
-
             if browser.find_elements(By.ID, 'btoption0'):
                 logging.info('Poll identified.')
                 daily_poll(browser)
@@ -84,6 +83,9 @@ def iter_dailies(browser):
                 click_quiz(browser)
             # else do scroll for exploring pages
             else:
+                #TODO: if we fail to get any answers correct on a quiz it may show an input of type button with value "Join now for free*"
+                # Appears to be a bug. I don't see it clicking myself. It also counts for the daily streak
+
                 logging.info('Explore Daily identified.')
                 explore_daily(browser)
         # check at the end of the loop to log if any offers are remaining
