@@ -27,12 +27,7 @@ Latest? is https://github.com/tmxkn1/Microsoft-Rewards-Bot/tree/master
 
 For running in `Task Scheduler` without a window popping up and stealing focus See: https://www.howtogeek.com/tips/how-to-run-a-scheduled-task-without-a-command-window-appearing/
 """
-
-#TODO: headless mobile is super damn finicky... Add a retry if we don't have the points (get_points should return how many we need)
-
 #TODO: Add README and requirements.txt and way to easily install
-
-#TODO: add with-context for driver to auto-cleanup??
 
 #TODO: how do I add a release in github??
 
@@ -54,6 +49,7 @@ logging.basicConfig(format=no_log_format,
                         logging.FileHandler(log_path, mode="w"),
                         logging.StreamHandler()
                     ])
+
 
 class Device(Enum):
     PC = 1
@@ -103,46 +99,45 @@ def setup_opts(parser=None):
 
 def main(args):
     completed_quizzes = False
-    browser = None
-    for i in sorted(args.drivers, reverse=True):  # Do mobile first since it can't get_point_total
+    for i in args.drivers:
+        attempts = 0
+        max_points_achieved = False
         try:
-            # Get our driver (mobile or desktop edge)
-            device = Device(i)
-            logging.info(f"Opening driver type: {device}")
-            driver = Driver.CHROME if device == Device.Mobile else Driver.EDGE
-            browser = spoof_browser(driver, args.headless, allow_screenshots=args.debug)
+            while not max_points_achieved and attempts < 3:
+                if attempts > 0:
+                    logging.info(f"Max points not achieved -> retrying for device {attempts+1}/{3}")
+                attempts += 1
 
-            # Login to Microsoft rewards
-            if not sign_into_microsoft(browser, device, get_login_info()):
-                logging.error("Please Sign in to get the rewards. Some error occurred")
-                if browser:
-                    browser.close()
-                    browser.quit()
+                # Get our driver (mobile or desktop edge)
+                device = Device(i)
+                logging.info(f"Opening driver type: {device}")
+                driver = Driver.CHROME if device == Device.Mobile else Driver.EDGE
+                browser = spoof_browser(driver, args.headless, allow_screenshots=args.debug)
+
+                # Login to Microsoft rewards
+                if not sign_into_microsoft(browser, device, get_login_info()):
+                    logging.error("Please Sign in to get the rewards. Some error occurred")
                     sys.exit(1)
 
-            if args.numWords > 0:
-                words_list = get_search_terms(args.numWords)
-                query_bing(browser, words_list)
+                if args.numWords > 0:
+                    words_list = get_search_terms(args.numWords)
+                    query_bing(browser, words_list)
 
-            if not completed_quizzes and args.quiz_mode and device == Device.PC:
-                try:
-                    logging.info(f'Attempting daily quizzes.')
-                    iter_dailies(browser)
-                    completed_quizzes = True
-                except Exception as e:
-                    logging.error(f'Failed to complete quizzes.')
-                    logging.error(traceback.format_exc())
+                if not completed_quizzes and args.quiz_mode and device == Device.PC:
+                    try:
+                        logging.info(f'Attempting daily quizzes:')
+                        iter_dailies(browser)
+                        completed_quizzes = True
+                    except Exception as e:
+                        logging.error(f'Failed to complete quizzes: \n{traceback.format_exc()}')
 
-            get_point_total(browser, device, log=True)
+                max_points_achieved = get_point_total(browser, device, log=True)
 
         except KeyboardInterrupt:
             logging.error('Stopping Script...')
-        finally:
-            # https://www.zyxware.com/articles/5552/what-is-close-and-quit-commands-in-selenium-webdriver#:~:text=quit()%20is%20a%20webdriver,not%20be%20cleared%20off%20memory.
-            if browser:
-                browser.close()  # This just closes the browser window which is currently in focus
-                browser.quit()  # Closes all browser windows and terminates the webDriver session
-                time.sleep(1)
+            sys.exit(1)
+        except Exception as e:
+            logging.error(f'Error Encountered, Continuing script to next driver: \n{traceback.format_exc()}')
 
 
 def sign_into_microsoft(browser, device: Device, credentials: dict):
@@ -224,7 +219,7 @@ def query_bing(browser, words: List[str]):
 def get_point_total(browser, device: Device, log: bool = False):
     """
     Checks for points for pc/edge and mobile, logs if flag is set
-    :return: Boolean for either pc/edge or mobile points met
+    :return: True if max pc/edge or mobile points met (based on device)
     """
     try:
         logging.info(msg="Querying for point totals:")
