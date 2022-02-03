@@ -136,6 +136,6 @@ def screenshot(browser, selector):
     :return: None
     """
     screenshot_file_name = f'{datetime.now().strftime("%Y%m%d%H%M%S")}_{selector}.png'
-    screenshot_file_path = os.path.join('logs', screenshot_file_name)
+    screenshot_file_path = os.path.join(os.path.dirname(__file__), 'logs', screenshot_file_name)
     logging.error(f'{selector} cannot be located. Saving screenshot at {screenshot_file_path}')
     browser.save_screenshot(screenshot_file_path)

@@ -41,11 +41,8 @@ def spoof_browser(driver: Driver, headless: bool, drivers_path: str = DRIVERS_PA
         options.use_chromium = True
         browser = webdriver.Edge(options=options, service=Service(driver_path))
     elif driver == Driver.CHROME:
-
-        # Spoof my user agent as my phone (Just google my user agent via personal mobile device for the exact agent string)
+        # Spoof user agent as phone (Google 'my user agent' via personal mobile device for the exact agent string)
         # TODO: The user agent needs to be updated every time my phone updates chrome...
-            # One way would be to somehow access my phone and query my user agent via web browser (https://www.makeuseof.com/tag/can-i-control-a-phone-with-my-computer-android/)
-                # Not really sure this would work...
             # I could also write a quick web crawler to query https://chromereleases.googleblog.com/ for the latest "Chrome for Android Update" and parse out the string
                 # ALT: http://omahaproxy.appspot.com/ (search os: android; channel: stable; get the current_version (can also get previous version here)
                     # THis genius did it for me: https://github.com/twkrol/vergrabber

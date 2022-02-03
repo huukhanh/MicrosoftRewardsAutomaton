@@ -20,8 +20,8 @@ For Research Purposes Only (of course): Automate collection of [Microsoft Bing R
 ###Automated Daily
 
 ## Troubleshooting
-If mobile doesn't work, you may need to update/change the user agent. 
-On your personal phone, google "My User Agent". Update #TODO -> link
+If mobile doesn't register points, you may need to update/change the user agent. 
+On your personal phone, google "My User Agent" and update spoof_browser function of [Driver.py](MicrosoftRewards/Driver.py)
 
 ## Inspiration / Credit
 - Microsoft-Rewards-Bot: [Latest](https://github.com/tmxkn1/Microsoft-Rewards-Bot/tree/master) | [OG](https://github.com/blackluv/Microsoft-Rewards-Bot)

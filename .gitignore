@@ -7,10 +7,10 @@ login.json
 Edge Rewards.xml
 
 #Installed Drivers
-drivers/
+MicrosoftRewards/drivers/
 
 # Anything in logs folder
-logs/*
+MicrosoftRewards/logs/*
 
 # BELOW HERE IS PYTHON TEMPLATE --------------------------------------
 

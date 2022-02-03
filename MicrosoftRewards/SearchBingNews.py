@@ -28,13 +28,9 @@ Latest? is https://github.com/tmxkn1/Microsoft-Rewards-Bot/tree/master
 For running in `Task Scheduler` without a window popping up and stealing focus See: https://www.howtogeek.com/tips/how-to-run-a-scheduled-task-without-a-command-window-appearing/
 """
 #TODO: Add README and requirements.txt and way to easily install
-
+#TODO: add actual searches from google trends
 #TODO: how do I add a release in github??
-
-# Should send an email if it fails to get all of the points???
-
-# Screenshot mode should only be enabled if debug is on... otherwise would need to clean out the folder periodically.
-# Would require re-write
+#TODO: Add option to send an email if it fails to get all of the points???
 
 BING_SEARCH_URL = "https://www.bing.com/search"
 DASHBOARD_URL = "https://rewards.microsoft.com/"
@@ -42,7 +38,7 @@ POINT_TOTAL_URL = "http://www.bing.com/rewardsapp/bepflyoutpage?style=chromeexte
 
 verbose_log_format = "%(levelname)s %(asctime)s - %(message)s"
 no_log_format = "%(message)s"
-log_path = os.path.join('logs', 'ms_rewards.log')
+log_path = os.path.join(os.path.dirname(__file__), 'logs', 'ms_rewards.log')
 logging.basicConfig(format=no_log_format,
                     level=logging.INFO,
                     handlers=[
@@ -99,6 +95,7 @@ def setup_opts(parser=None):
 
 def main(args):
     completed_quizzes = False
+    max_points_achieved = False
     for i in args.drivers:
         attempts = 0
         max_points_achieved = False
@@ -139,6 +136,8 @@ def main(args):
         except Exception as e:
             logging.error(f'Error Encountered, Continuing script to next driver: \n{traceback.format_exc()}')
 
+    logging.info(f"{'Max points achieved' if max_points_achieved else 'FAILED to get max points'}")
+
 
 def sign_into_microsoft(browser, device: Device, credentials: dict):
     browser.get("https://login.live.com")
@@ -167,7 +166,7 @@ def sign_into_microsoft(browser, device: Device, credentials: dict):
 
 
 def get_login_info() -> dict:
-    with open('login.json', 'r') as f:
+    with open(os.path.join(os.path.dirname(__file__), '..', 'login.json'), 'r') as f:
         return json.load(f)
 
 
