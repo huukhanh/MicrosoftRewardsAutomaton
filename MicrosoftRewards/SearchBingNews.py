@@ -20,7 +20,6 @@ from SeleniumHelper import wait_until_clickable, wait_until_visible, click_eleme
 Automated Binq Query searching and Quiz Completion to maximize daily Microsoft Bing rewards points
 """
 # TODO: add actual searches from google trends -> backup to wordsList
-# TODO: how do I add a release in github??
 # TODO: automatically update mobile user agent string
 # TODO: Add option to send an email if it fails to get all of the points???
 
