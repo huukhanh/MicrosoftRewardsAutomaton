@@ -1,7 +1,11 @@
 # MicrosoftRewards
-For Research Purposes Only (of course): Automate collection of [Microsoft Bing Rewards](https://rewards.microsoft.com/) points 
+For Research Purposes Only (of course).
+
+Automate collection of [Microsoft Bing Rewards](https://rewards.microsoft.com/) points 
 - Searches Bing in PC, MS Edge and Mobile
 - Completes daily quizzes / offers
+- Auto-updates web drivers to ensure Microsoft registers queries and provides points
+  - Retries 3 times if points not registered
 
 ## Install
 - Requires python 3.7+ (Tested with python 3.10.x)
@@ -15,9 +19,28 @@ For Research Purposes Only (of course): Automate collection of [Microsoft Bing R
 ## Run
 
 ###Locally
-`python SearchBingNews.py -h` or `--help` for command arguments / more info
+`cd` to `MicrosoftRewards` from root or use `python MicrosoftRewards/SearchBingNews.py`.
 
+Examples:
+- `python SearchBingNews.py -h` or `--help` for command arguments / more info
+- Run everything headless (should be default daily for all runs)
+  - `python SearchBingNews.py -q --headless`
+- Run 1 search (-n 1), in PC mode (-d 1), with debug on to save screenshots:
+  - `python SearchBingNews.py -d 1 -n 1 --debug`
+  
 ###Automated Daily
+
+####Windows Task Scheduler
+Google how to set up a task in the scheduler. Reference [WindowsTaskScheduler_Example.xml](WindowsTaskScheduler_Example.xml) for correct settings for windows 10
+
+Make sure it is executing `python SearchBingNews.py -q --headless` to get all points
+
+For running in `Task Scheduler` without a window popping up and stealing focus
+See: https://www.howtogeek.com/tips/how-to-run-a-scheduled-task-without-a-command-window-appearing/
+
+####Linux
+use crontab -> figure it out yourself.
+Can use a docker container if desired.
 
 ## Troubleshooting
 If mobile doesn't register points, you may need to update/change the user agent. 

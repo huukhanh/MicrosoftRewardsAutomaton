@@ -18,19 +18,11 @@ from SeleniumHelper import wait_until_clickable, wait_until_visible, click_eleme
 
 """
 Automated Binq Query searching and Quiz Completion to maximize daily Microsoft Bing rewards points
-
-V2 updated based on https://github.com/dajoen/Microsoft-Rewards-Bot?ref=https://githubhelp.com
-Added Quizzes, Checking points, SeleniumHelper, etc.
-
-OG was apparently: https://github.com/blackluv/Microsoft-Rewards-Bot
-Latest? is https://github.com/tmxkn1/Microsoft-Rewards-Bot/tree/master
-
-For running in `Task Scheduler` without a window popping up and stealing focus See: https://www.howtogeek.com/tips/how-to-run-a-scheduled-task-without-a-command-window-appearing/
 """
-#TODO: Add README and requirements.txt and way to easily install
-#TODO: add actual searches from google trends
-#TODO: how do I add a release in github??
-#TODO: Add option to send an email if it fails to get all of the points???
+# TODO: add actual searches from google trends -> backup to wordsList
+# TODO: how do I add a release in github??
+# TODO: automatically update mobile user agent string
+# TODO: Add option to send an email if it fails to get all of the points???
 
 BING_SEARCH_URL = "https://www.bing.com/search"
 DASHBOARD_URL = "https://rewards.microsoft.com/"
