@@ -86,7 +86,7 @@ def setup_opts(parser=None):
 
 def main(args):
     completed_quizzes = False
-    max_points_achieved = False
+    max_points_achieved_device = {}
     for i in args.drivers:
         attempts = 0
         max_points_achieved = False
@@ -120,6 +120,7 @@ def main(args):
                         logging.error(f'Failed to complete quizzes: \n{traceback.format_exc()}')
 
                 max_points_achieved = get_point_total(browser, device, log=True)
+                max_points_achieved_device[device] = max_points_achieved
 
         except KeyboardInterrupt:
             logging.error('Stopping Script...')
@@ -127,7 +128,7 @@ def main(args):
         except Exception as e:
             logging.error(f'Error Encountered, Continuing script to next driver: \n{traceback.format_exc()}')
 
-    logging.info(f"{'Max points achieved' if max_points_achieved else 'FAILED to get max points'}")
+    logging.info(f"{'Max points achieved' if all(max_points_achieved_device.values()) else 'FAILED to get max points'}")
 
 
 def sign_into_microsoft(browser, device: Device, credentials: dict):
