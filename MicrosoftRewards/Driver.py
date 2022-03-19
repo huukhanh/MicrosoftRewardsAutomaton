@@ -117,33 +117,47 @@ def download_driver(driver: Driver, drivers_path=DRIVERS_PATH):
     logging.info(f"Downloading latest {driver_file_name} version: {latest_version}")
 
     driver_file_path = os.path.join(drivers_path, driver_file_name)
+    backup_driver_file_path = os.path.join(drivers_path, f"old_{driver_file_name}")
     if os.path.exists(driver_file_path):
-        os.remove(driver_file_path)
+        if os.path.exists(backup_driver_file_path):
+            os.remove(backup_driver_file_path)
+        os.rename(driver_file_path, backup_driver_file_path)
 
-    system_ext = _get_platform_ext()
-    url = (f"https://chromedriver.storage.googleapis.com/{latest_version}/{driver.value}_{system_ext}.zip"
-           if driver == Driver.CHROME else
-           f"https://msedgedriver.azureedge.net/{latest_version}/{driver.value.replace('ms', '')}_{system_ext}.zip")
-    response = requests.get(url, stream=True)
+    try:
+        system_ext = _get_platform_ext()
+        url = (f"https://chromedriver.storage.googleapis.com/{latest_version}/{driver.value}_{system_ext}.zip"
+               if driver == Driver.CHROME else
+               f"https://msedgedriver.azureedge.net/{latest_version}/{driver.value.replace('ms', '')}_{system_ext}.zip")
 
-    zip_file_path = os.path.join(os.path.dirname(driver_file_path), os.path.basename(url))
-    with open(zip_file_path, "wb") as handle:
-        for chunk in response.iter_content(chunk_size=512):
-            if chunk:  # filter out keep alive chunks
-                handle.write(chunk)
+        response = requests.get(url, stream=True)
 
-    extracted_dir = os.path.splitext(zip_file_path)[0]
-    with zipfile.ZipFile(zip_file_path, "r") as zip_file:
-        zip_file.extractall(extracted_dir)
-    os.remove(zip_file_path)
+        zip_file_path = os.path.join(os.path.dirname(driver_file_path), os.path.basename(url))
+        with open(zip_file_path, "wb") as handle:
+            for chunk in response.iter_content(chunk_size=512):
+                if chunk:  # filter out keep alive chunks
+                    handle.write(chunk)
 
-    # Copy driver out of extracted directory and delete extracted directory
-    assert driver_file_name in os.listdir(extracted_dir), f"{driver_file_path} not in {os.listdir(extracted_dir)}"
-    os.rename(os.path.join(extracted_dir, driver_file_name), driver_file_path)
-    shutil.rmtree(extracted_dir)
+        extracted_dir = os.path.splitext(zip_file_path)[0]
+        with zipfile.ZipFile(zip_file_path, "r") as zip_file:
+            zip_file.extractall(extracted_dir)
+        os.remove(zip_file_path)
 
-    os.chmod(driver_file_path, 0o755)
+        # Copy driver out of extracted directory and delete extracted directory
+        assert driver_file_name in os.listdir(extracted_dir), f"{driver_file_path} not in {os.listdir(extracted_dir)}"
+        os.rename(os.path.join(extracted_dir, driver_file_name), driver_file_path)
+        shutil.rmtree(extracted_dir)
 
-    # Update the versions file with new version
-    with open(os.path.join(os.path.dirname(driver_file_path), f"{driver.value}_version.txt"), "w") as version_file:
-        version_file.write(latest_version)
+        os.chmod(driver_file_path, 0o755)
+
+        # Update the versions file with new version
+        with open(os.path.join(os.path.dirname(driver_file_path), f"{driver.value}_version.txt"), "w") as version_file:
+            version_file.write(latest_version)
+
+        if os.path.exists(backup_driver_file_path):
+            os.remove(backup_driver_file_path)
+    except Exception as e:
+        if os.path.exists(backup_driver_file_path):
+            logging.info(f"Error occurred downloading driver {e} -> rolling back to existing driver")
+            os.rename(backup_driver_file_path, driver_file_path)
+        else:
+            raise

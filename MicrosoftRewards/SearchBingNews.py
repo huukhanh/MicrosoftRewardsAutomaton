@@ -125,10 +125,11 @@ def main(args):
         except KeyboardInterrupt:
             logging.error('Stopping Script...')
             sys.exit(1)
-        except Exception as e:
+        except Exception:
             logging.error(f'Error Encountered, Continuing script to next driver: \n{traceback.format_exc()}')
 
-    logging.info(f"{'Max points achieved' if all(max_points_achieved_device.values()) else 'FAILED to get max points'}")
+    max_points_achieved = all([max_points_achieved_device.get(Device(d), False) for d in args.drivers])
+    logging.info(f"{'Max points achieved' if max_points_achieved else 'FAILED to get max points'}")
 
 
 def sign_into_microsoft(browser, device: Device, credentials: dict):
