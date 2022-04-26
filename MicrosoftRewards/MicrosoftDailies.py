@@ -36,6 +36,7 @@ def iter_dailies(browser):
         time.sleep(2)
 
     open_offers = browser.find_elements_by_xpath('//span[contains(@class, "mee-icon-AddMedium")]')
+    open_offers = open_offers + browser.find_elements_by_xpath('//span[contains(@class, "mee-icon-HourGlass")]')
     if not open_offers:
         logging.info('No dailies found.')
         return
@@ -78,6 +79,12 @@ def iter_dailies(browser):
                 elif browser.find_elements(By.ID, 'rqAnswerOption0'):
                     logging.info('Lightning Quiz identified.')
                     lightning_quiz(browser)
+            elif browser.find_elements(By.ID, 'rqAnswerOptionNum0'):
+                logging.info('Incomplete Drag and Drop Quiz identified.')
+                drag_and_drop_quiz(browser)
+            elif browser.find_elements(By.ID, 'rqAnswerOption0'):
+                logging.info('Incomplete Lightning Quiz identified.')
+                lightning_quiz(browser)
             elif browser.find_elements(By.CLASS_NAME, 'wk_Circle'):
                 logging.info('Click Quiz identified.')
                 click_quiz(browser)
@@ -93,6 +100,7 @@ def iter_dailies(browser):
         time.sleep(0.1)
         wait_until_visible(browser, By.TAG_NAME, 'body', 10)  # checks for page load
         open_offers = browser.find_elements_by_xpath('//span[contains(@class, "mee-icon-AddMedium")]')
+        open_offers = open_offers + browser.find_elements_by_xpath('//span[contains(@class, "mee-icon-HourGlass")]')
         logging.info(f'Number of incomplete offers remaining: {len(open_offers)}')
 
 

@@ -46,7 +46,7 @@ def spoof_browser(driver: Driver, headless: bool, drivers_path: str = DRIVERS_PA
         options.add_argument('--user-agent="Mozilla/5.0 (Linux; Android 10; SM-G960U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.98 Mobile Safari/537.36"')
         browser = webdriver.Chrome(options=options, service=Service(driver_path))
 
-    browser.set_page_load_timeout(20)
+    browser.set_page_load_timeout(30)
 
     if not allow_screenshots:
         def do_nothing(*args, **kwargs):

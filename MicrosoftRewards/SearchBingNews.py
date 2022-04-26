@@ -58,7 +58,7 @@ def setup_opts(parser=None):
     parser.add_argument(
         '--numWords',
         '-n',
-        default=40, type=int,  # Requirement for max points is 30 for PC and 20 for Mobile... but it doesn't always work, so best to run it extra times
+        default=50, type=int,  # Requirement for max points is 30 for PC and 20 for Mobile... but it doesn't always work, so best to run it extra times
         help='How many words to search. default is %(default)s',
         dest='numWords')
     parser.add_argument(
@@ -242,7 +242,9 @@ def get_point_total(browser, device: Device, log: bool = False):
         daily_points = int(counters["dailyPoint"][0]["pointProgress"])
         (current_points, lifetime_points) = (int(status['availablePoints']), int(status["lifetimePoints"]))
 
-        num_incomplete_quizzes = len([p for p in json_statuses.get("morePromotions", []) if not p["complete"]])
+        daily_promos = json_statuses.get("dailySetPromotions", [])
+        promos = daily_promos + json_statuses.get("morePromotions", [])
+        num_incomplete_quizzes = len([p for p in promos if (not p["complete"] and p.get("pointProgressMax", 0) > 0)])
 
         if log:
             logging.info(f'\n')
