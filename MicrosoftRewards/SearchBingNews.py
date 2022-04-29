@@ -1,3 +1,4 @@
+from datetime import date
 from enum import Enum
 import json
 import logging
@@ -242,7 +243,7 @@ def get_point_total(browser, device: Device, log: bool = False):
         daily_points = int(counters["dailyPoint"][0]["pointProgress"])
         (current_points, lifetime_points) = (int(status['availablePoints']), int(status["lifetimePoints"]))
 
-        daily_promos = json_statuses.get("dailySetPromotions", [])
+        daily_promos = json_statuses.get("dailySetPromotions", {}).get(date.today().strftime("%m/%d/%Y"), [])
         promos = daily_promos + json_statuses.get("morePromotions", [])
         num_incomplete_quizzes = len([p for p in promos if (not p["complete"] and p.get("pointProgressMax", 0) > 0)])
 
