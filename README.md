@@ -46,7 +46,8 @@ use crontab -> figure it out yourself.
 Can use a docker container if desired.
 
 ## Troubleshooting
-If mobile doesn't register points, you may need to update/change the user agent. 
+NOTE: Mobile points are only available for 'Level 2' Microsoft Rewards users.
+If mobile doesn't register points, but you are eligible, you may need to update/change the user agent. 
 On your personal phone, google "My User Agent" and update `spoof_browser` function of [Driver.py](MicrosoftRewards/Driver.py)
 
 ## Inspiration / Credit
