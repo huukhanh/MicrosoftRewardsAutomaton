@@ -237,8 +237,12 @@ def get_point_total(browser, device: Device, log: bool = False):
         edge_bonus = counters['pcSearch'][1]
         (edge_bonus_pts, edge_bonus_max) = (int(edge_bonus['pointProgress']), int(edge_bonus['pointProgressMax']))
 
-        mobile_search = counters['mobileSearch'][0]
-        (mobile_pts, mobile_max) = (int(mobile_search['pointProgress']), int(mobile_search['pointProgressMax']))
+        if 'mobileSearch' in counters:
+            # Note: mobile points are only available for 'Level 2' Microsoft Rewards users
+            mobile_search = counters['mobileSearch'][0]
+            (mobile_pts, mobile_max) = (int(mobile_search['pointProgress']), int(mobile_search['pointProgressMax']))
+        else:
+            mobile_pts = mobile_max = 0
 
         daily_points = int(counters["dailyPoint"][0]["pointProgress"])
         (current_points, lifetime_points) = (int(status['availablePoints']), int(status["lifetimePoints"]))
