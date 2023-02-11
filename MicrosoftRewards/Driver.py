@@ -30,6 +30,19 @@ def spoof_browser(driver: Driver, headless: bool, drivers_path: str = DRIVERS_PA
     if driver_update_available(driver, drivers_path):
         download_driver(driver, drivers_path)
 
+    browser = _get_webdriver(driver, headless, drivers_path)
+
+    browser.set_page_load_timeout(30)
+
+    if not allow_screenshots:
+        def do_nothing(*args, **kwargs):
+            pass
+        browser.save_screenshot = do_nothing
+
+    return browser
+
+
+def _get_webdriver(driver: Driver, headless: bool, drivers_path: str):
     options = ChromeOptions() if driver == Driver.CHROME else EdgeOptions()
     options.headless = headless
     # This stops us from failing the bluetooth check, other weird errors due to headless and random logging
@@ -45,13 +58,8 @@ def spoof_browser(driver: Driver, headless: bool, drivers_path: str = DRIVERS_PA
         # TODO: The user agent needs to be updated every time my phone updates chrome...
         options.add_argument('--user-agent="Mozilla/5.0 (Linux; Android 10; SM-G960U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.98 Mobile Safari/537.36"')
         browser = webdriver.Chrome(options=options, service=Service(driver_path))
-
-    browser.set_page_load_timeout(30)
-
-    if not allow_screenshots:
-        def do_nothing(*args, **kwargs):
-            pass
-        browser.save_screenshot = do_nothing
+    else:
+        raise Exception(f"Unsupported driver: {driver}")
 
     return browser
 
@@ -70,10 +78,12 @@ def _get_platform_ext() -> str:
 
     if system == "Windows":
         system_ext = "win32"  # NOTE: win is the OS and 32 is the architecture
-    if system == "Darwin":
+    elif system == "Darwin":
         system_ext = "mac64"
     elif system == "Linux":
         system_ext = "linux64"
+    else:
+        raise Exception(f"Unknown platform system: {system}")
 
     return system_ext
 
@@ -119,8 +129,7 @@ def download_driver(driver: Driver, drivers_path=DRIVERS_PATH):
     driver_file_path = os.path.join(drivers_path, driver_file_name)
     backup_driver_file_path = os.path.join(drivers_path, f"old_{driver_file_name}")
     if os.path.exists(driver_file_path):
-        if os.path.exists(backup_driver_file_path):
-            os.remove(backup_driver_file_path)
+        _remove_file_if_exists(backup_driver_file_path)
         os.rename(driver_file_path, backup_driver_file_path)
 
     try:
@@ -148,16 +157,23 @@ def download_driver(driver: Driver, drivers_path=DRIVERS_PATH):
         shutil.rmtree(extracted_dir)
 
         os.chmod(driver_file_path, 0o755)
+        _ = _get_webdriver(driver, True, drivers_path)  # Test that we can launch a webdriver with new driver executable
 
         # Update the versions file with new version
         with open(os.path.join(os.path.dirname(driver_file_path), f"{driver.value}_version.txt"), "w") as version_file:
             version_file.write(latest_version)
 
-        if os.path.exists(backup_driver_file_path):
-            os.remove(backup_driver_file_path)
+        _remove_file_if_exists(backup_driver_file_path)
     except Exception as e:
         if os.path.exists(backup_driver_file_path):
-            logging.info(f"Error occurred downloading driver {e} -> rolling back to existing driver")
+            logging.info(f"Error occurred downloading driver `{e}` -> rolling back to existing driver")
+            _remove_file_if_exists(driver_file_path)
+
             os.rename(backup_driver_file_path, driver_file_path)
         else:
             raise
+
+
+def _remove_file_if_exists(filepath: str):
+    if os.path.exists(filepath):
+        os.remove(filepath)
